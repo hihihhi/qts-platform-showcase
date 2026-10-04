@@ -21,25 +21,28 @@ result, label or source.
 
 | Measure | Result | Label | Source |
 |---|---|---|---|
-| Stored market-data rows: A-share cleansed (565.9B) plus crypto stored (106.7B) | 650B+ | Live | table counts, 2026-10-03 |
+| Stored market-data rows: A-share cleansed (565.9B) plus crypto stored (138.1B) | 700B+ | Live | table counts, 2026-10-05 |
 | Closing-auction trades a time-window filter had silently dropped, one day | 113,180 | Test | data platform design, 2026-09-28 |
-| A-share rows cleansing removed, all of them exact duplicates; every other rule labels, flags or corrects | 0.09% | Live | table counts, 2026-10-03 |
+| A-share rows cleansing removed, all of them exact duplicates; every other rule labels, flags or corrects | 0.09% | Live | table counts, 2026-10-05 |
 | Dataset commits on a small test dataset (420,000 rows) while 12 readers and 5 writers shared it | 23/23 commits, 0 lost | Test | concurrency gate results, 2026-09-23 |
 | Whole-market day, warm: the query interface against hand-written DuckDB SQL | 1.49× slower | Test | data API benchmark, 2026-09-30 |
 
 ## Raw counts
 
 `scripts/demo.sh` reads this table and re-derives every computed figure on this page from it: the
-A-share total, the 650B+ sum and its duplicate floor, the duplicate rate, and the read count. It
-exits 1 if any figure stated on this page disagrees with its own arithmetic.
+A-share and crypto totals, the 700B+ sum, the duplicate shares that would break 700B and 650B, the
+duplicate rate, and the read count. It exits 1 if any figure stated on this page disagrees with its
+own arithmetic.
 
 | Count | Value | Source |
 |---|---:|---|
-| A-share cleansed orders | 293,894,478,356 | table counts, 2026-10-03 |
-| A-share cleansed trades | 228,609,088,757 | table counts, 2026-10-03 |
-| A-share cleansed quotes | 43,446,124,248 | table counts, 2026-10-03 |
-| A-share typed layer, all three tables | 566,464,087,478 | table counts, 2026-10-03 |
-| Crypto trades, stored | 106,705,605,608 | table counts, 2026-10-03 |
+| A-share cleansed orders | 293,894,477,866 | table counts, 2026-10-05 |
+| A-share cleansed trades | 228,609,088,757 | table counts, 2026-10-05 |
+| A-share cleansed quotes | 43,446,124,248 | table counts, 2026-10-05 |
+| A-share typed layer, all three tables | 566,464,087,478 | table counts, 2026-10-05 |
+| Crypto trades, stored | 137,221,906,250 | table counts, 2026-10-05 |
+| Crypto L3 order-book events, stored | 698,762,007 | table counts, 2026-10-05 |
+| Crypto incremental L2 book updates, stored | 138,932,302 | table counts, 2026-10-05 |
 | Concurrency gate, reads by the first reader kind | 282 | concurrency gate results, 2026-09-23 |
 | Concurrency gate, reads by the second reader kind | 410 | concurrency gate results, 2026-09-23 |
 | Concurrency gate, reads by the third reader kind | 419 | concurrency gate results, 2026-09-23 |
@@ -48,31 +51,34 @@ exits 1 if any figure stated on this page disagrees with its own arithmetic.
 
 | Measure | Result | Label | Source |
 |---|---|---|---|
-| A-share rows, cleansed layer (orders, trades and quotes) | 565,949,691,361 | Live | table counts, 2026-10-03 |
-| Crypto trade rows, stored, from 2019 to 2026-09-29 | 106,705,605,608 | Live | table counts, 2026-10-03 |
-| Sum of the two | 672,655,296,969, stated as **650B+** | Live | table counts, 2026-10-03 |
-| A-share rows removed by cleansing (typed layer minus cleansed layer, both covering the same days), all exact duplicates | 514,396,117 of 566,464,087,478, which is 0.09% | Live | table counts, 2026-10-03 (count and day ranges); data platform design, 2026-09-28 (only exact duplicates are removed) |
+| A-share rows, cleansed layer (orders, trades and quotes) | 565,949,690,871 | Live | table counts, 2026-10-05 |
+| Crypto rows, stored: trades from 2019-03-30 to 2026-09-29, L3 order-book events from 2026-06-01 and incremental L2 book updates from 2026-08-01, both to 2026-10-01 | 138,059,600,559 | Live | table counts, 2026-10-05 |
+| Sum of the two, stored rows | 704,009,291,430, stated as **700B+** | Live | table counts, 2026-10-05 |
+| A-share rows removed by cleansing (typed layer minus cleansed layer, both covering the same days), all exact duplicates | 514,396,607 of 566,464,087,478, which is 0.09% | Live | table counts, 2026-10-05 (counts); table counts, 2026-10-03 (day ranges); data platform design, 2026-09-28 (only exact duplicates are removed) |
 | A-share history covered | 2,361 trading days of trades from 2017-01-03 to 2026-09-28 in the wiki build of 2026-10-01; the table counts of 2026-10-03 run to 2026-09-30 | Live | researcher wiki, pipeline and cleansing pages, built 2026-10-01 |
 
-**Why 650B+ and not 672.7B.** The crypto figure counts stored rows. Its cleansed view leaves out
-rows flagged as exact duplicates, and no count of those was recorded. The floor of 650B holds
-unless more than 21.2% of the crypto rows are exact duplicates (650B minus 565.95B leaves 84.05B of
-the 106.71B). For comparison, A-share cleansing found 0.09% exact duplicates. No row is counted
-twice: the A-share typed layer is a separate copy and is not added. The crypto count is a snapshot
-of a dataset that was still being filled (the download was incomplete when it was taken), so it is
-not final.
+**Why 700B+ counts stored rows, not distinct ones.** The crypto figure counts stored rows. Its
+cleansed view is meant to leave out exact duplicates but does not exclude them yet, so today it
+holds the same count; no count of crypto duplicates has been recorded, and a re-cleanse is in
+progress. How many of the stored rows are distinct is therefore unmeasured. As a count of distinct
+rows, 700B holds only if fewer than 2.9% of the crypto rows are exact duplicates (704.01B minus
+700B leaves 4.01B of the 138.06B). The conservative floor is 650B, which holds unless more than
+39.1% of them are (704.01B minus 650B leaves 54.01B). For comparison, A-share cleansing found 0.09%
+exact duplicates. No row is counted twice: the A-share typed layer is a separate copy and is not
+added. The crypto counts are a snapshot, not final.
 
 **Gaps in the A-share history.** One trading day is missing because the supplier's archive for it
 was damaged, and three days of trades are held back in the raw layer because of a column anomaly.
 Source: A-share data-issues record, 2026-09-30.
 
 **Why the crypto count jumped.** A dated record of 2026-09-30 held 16,015,162,350 crypto rows, and
-the table counts of 2026-10-03 hold 106,705,605,608. The converter had been crash-looping on one
+the table counts of 2026-10-03 hold 106,705,605,608 (137,221,906,250 crypto trades by the table
+counts of 2026-10-05). The converter had been crash-looping on one
 oversized batch, 743 times, committing nothing behind it. The count did not grow steadily: the two
 dated counts bracket the fix, after which the converter committed the files that had queued behind
 the failing batch ([the story](reliability.md#a-second-shorter-story-the-converter-that-crash-looped)).
 Sources: crypto dataset baseline, 2026-09-30; converter fix commit record, 2026-10-03; table
-counts, 2026-10-03.
+counts, 2026-10-03 and 2026-10-05.
 
 ## Concurrency
 
@@ -169,6 +175,7 @@ figures above.
 | Cited as | What it is |
 |---|---|
 | table counts, 2026-10-03 | raw output of the platform's table listing: every table, its row count and its day range |
+| table counts, 2026-10-05 | a later read-only run of the same table listing, taken through the platform's own interface (2026-10-04 20:20 UTC): every table, its row count and its day range |
 | concurrency gate results, 2026-09-23 | raw output of the readers-and-writers gate |
 | database evaluation, 2026-09-23 | an evaluation and profile of the query path, written up in prose and tables |
 | code-and-library evaluation, 2026-09-23 | an evaluation of the platform's code and libraries, including the stored size of one A-share day's three tables against the supplier's archive |

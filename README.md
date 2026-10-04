@@ -2,8 +2,8 @@
 
 A university quant society's research team needed tick-level market data it could trust and query
 in seconds. As the team's sole developer, Oscar Choi built the platform that serves it: an
-ingestion and cleansing pipeline plus a versioned reader library over **650B+ stored market-data
-rows** (A-share cleansed plus crypto stored, table counts of 2026-10-03). Cleansing flags rows
+ingestion and cleansing pipeline plus a versioned reader library over **700B+ stored market-data
+rows** (A-share cleansed plus crypto stored, table counts of 2026-10-05). Cleansing flags rows
 instead of dropping them, after a time filter was found silently discarding **113,180**
 closing-auction trades in one day; the only rows it removes are exact duplicates, **0.09%**.
 
@@ -62,15 +62,15 @@ More calls, and an illustrative output with SYNTHETIC values: [data-model.md](do
 
 | Measure | Result | Label | Source |
 |---|---|---|---|
-| Stored market-data rows: A-share cleansed (565.9B) plus crypto stored (106.7B) | 650B+ | Live | table counts, 2026-10-03 |
+| Stored market-data rows: A-share cleansed (565.9B) plus crypto stored (138.1B) | 700B+ | Live | table counts, 2026-10-05 |
 | Closing-auction trades a time-window filter had silently dropped, one day | 113,180 | Test | data platform design, 2026-09-28 |
-| A-share rows cleansing removed, all of them exact duplicates; every other rule labels, flags or corrects | 0.09% | Live | table counts, 2026-10-03 |
+| A-share rows cleansing removed, all of them exact duplicates; every other rule labels, flags or corrects | 0.09% | Live | table counts, 2026-10-05 |
 | Dataset commits on a small test dataset (420,000 rows) while 12 readers and 5 writers shared it | 23/23 commits, 0 lost | Test | concurrency gate results, 2026-09-23 |
 | Whole-market day, warm: the query interface against hand-written DuckDB SQL | 1.49× slower | Test | data API benchmark, 2026-09-30 |
 
 **Live**: read from the running platform. **Test**: a deliberate benchmark or gate. Speed is given
-only as ratios; absolute timings are left out on purpose. Why 650B+ is a floor:
-[results.md](docs/results.md#scale).
+only as ratios; absolute timings are left out on purpose. Why 700B+ counts stored rows, not
+distinct ones: [results.md](docs/results.md#scale).
 
 Three data-reading steps, timed by a scripted walkthrough of a researcher's work before and after a
 round of fixes, ran 14×–99× faster; the same record's other everyday steps improved about 1.4–1.5×, and one about 5×
@@ -174,7 +174,8 @@ and review; 815 of the 845 commits in the main repository carry an AI co-author 
 - **The stand-in is not the platform.** [demo/](demo/) runs on SYNTHETIC data at toy scale; it
   shows the ideas and none of the platform's numbers.
 - **No uptime or SLA figure.** No availability measurement exists that would support one.
-- **The crypto count is a snapshot, not final**, and its exact-duplicate count was not recorded.
+- **The crypto count is a snapshot, not final**, and its exact-duplicate count was not recorded,
+  so the number of distinct rows behind 700B+ is unmeasured; a re-cleanse is in progress.
 - **The query-fix ratios and the researcher-step ratios come from write-ups' tables** rather than
   raw per-run files, and the first query on a new nightly version, which rebuilds the cache, was not timed.
 - **No researcher count or usage figure is reported**, because no dated record of one exists. The

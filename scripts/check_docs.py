@@ -11,7 +11,7 @@ Checks, each with the failure it exists to catch:
             block that is empty or does not start with a diagram type (GitHub shows an error box)
   headlines the README's headline table differing from docs/results.md in any result, label or
             source, or either table missing
-  arithmetic a computed figure in docs/results.md (a total, the 650B+ floor, the duplicate rate,
+  arithmetic a computed figure in docs/results.md (a total, the 700B+ sum and its duplicate shares, the duplicate rate,
             the read count) that its own raw counts do not produce (scripts/figures.py)
   numbers   a figure in the README's prose that docs/results.md does not state
   forbidden a hardware, access or vendor term anywhere in the repository, this file included
@@ -264,7 +264,7 @@ def self_test():
         ("unclosed fence", "links and fences", append("docs/reliability.md", "\n```text\nnever closed\n")),
         ("empty mermaid", "links and fences", append("docs/reliability.md", "\n```mermaid\n```\n")),
         # a drifted headline is also a figure results.md does not state, so two checks go red
-        ("headline drift", ["headlines", "numbers"], edit("README.md", "| 650B+ |", "| 700B+ |")),
+        ("headline drift", ["headlines", "numbers"], edit("README.md", "| 700B+ |", "| 750B+ |")),
         ("label drift", "headlines", edit("README.md", "| 1.49× slower | Test |", "| 1.49× slower | Live |")),
         ("README-only figure", "numbers", edit("README.md", "discarding **113,180**", "discarding **113,181**")),
         ("miscomputed total", "arithmetic", edit("docs/results.md", "| 43,446,124,248 |", "| 43,446,124,249 |")),
