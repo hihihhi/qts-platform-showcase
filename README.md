@@ -1,6 +1,6 @@
 # CUHK QTS research data platform: 700B+ rows of tick data
 
-[![ci](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/ci.yml) [![lint](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/lint.yml/badge.svg)](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/lint.yml)
+[![ci](https://github.com/oscar-chw/qts-platform-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/oscar-chw/qts-platform-showcase/actions/workflows/ci.yml) [![lint](https://github.com/oscar-chw/qts-platform-showcase/actions/workflows/lint.yml/badge.svg)](https://github.com/oscar-chw/qts-platform-showcase/actions/workflows/lint.yml)
 
 A university quant society's research team needed tick-level market data it could trust and query
 in seconds. As the team's sole developer, Oscar Choi built the platform that serves it: an
@@ -25,7 +25,7 @@ A write-up, not a code release: the platform's source is closed, so this reposit
 its code, no infrastructure detail and no data, and every number cites a dated source document by
 title ([sources](docs/results.md#sources)). A separate stand-in, independent and written only from
 this write-up, runs the same ideas on SYNTHETIC data in its own repository,
-[qts-platform-demo](https://github.com/hihihhi/qts-platform-demo).
+[qts-platform-demo](https://github.com/oscar-chw/qts-platform-demo).
 Implemented with AI coding agents under Oscar's design and review.
 
 ## The problem
@@ -96,7 +96,7 @@ decisions) and [reliability.md](docs/reliability.md) (gates, alerting and one in
 ### The stand-in
 
 To run the ideas rather than read about them, see
-[qts-platform-demo](https://github.com/hihihhi/qts-platform-demo): **minilake**, an independent
+[qts-platform-demo](https://github.com/oscar-chw/qts-platform-demo): **minilake**, an independent
 re-implementation written only from this write-up. It is not the platform's code and shares none
 of it; it uses the standard library only, runs on SYNTHETIC data in seconds, and checks its layers
 with seven gates, each with a control.
@@ -136,7 +136,7 @@ and review; 815 of the 845 commits in the main repository carry an AI co-author 
 
 - **The platform's numbers are not reproducible from here.** Its source and data are closed; the
   numbers rest on dated private records, described in [results.md](docs/results.md#sources).
-- **The stand-in is not the platform.** [qts-platform-demo](https://github.com/hihihhi/qts-platform-demo)
+- **The stand-in is not the platform.** [qts-platform-demo](https://github.com/oscar-chw/qts-platform-demo)
   runs on SYNTHETIC data at toy scale; it shows the ideas and none of the platform's numbers.
 - **No uptime or SLA figure.** No availability measurement exists that would support one.
 - **The crypto count is a snapshot, not final**, and its exact-duplicate count was not recorded,
