@@ -93,16 +93,16 @@ sequenceDiagram
     participant D as Versioned dataset
     participant W as 4 writers
     participant P as A fifth process
-    R->>D: pin the version each started with
+    R->>D: pin the version<br/>each started with
     par writers append
-        W->>D: publish a whole new version, or nothing
+        W->>D: publish a whole new<br/>version, or nothing
     and a partition is rewritten
         P->>D: rewrite one partition
     and readers keep reading
-        R->>D: read through DuckDB, Apache Arrow<br/>and the query interface
-        D-->>R: the pinned version, even while<br/>a writer publishes the next one
+        R->>D: read through DuckDB,<br/>Apache Arrow and<br/>the query interface
+        D-->>R: the pinned version,<br/>even while a writer<br/>publishes the next one
     end
-    Note over R,P: Gate result: 23/23 commits, 0 lost, no writer errors.<br/>1,111 reads, 0 mismatches against the pinned version.<br/>Final dataset: 420,000 rows exactly, every writer's batch once.
+    Note over R,P: Gate result: 23/23 commits, 0 lost,<br/>no writer errors. 1,111 reads, 0 mismatches<br/>against the pinned version. Final dataset:<br/>420,000 rows exactly, every writer's batch once.
 ```
 
 Where in the code: closed source, not in this repository; the gate is described in

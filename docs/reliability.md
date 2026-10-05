@@ -54,26 +54,26 @@ platform's handover document (2026-09-07).
 Where the failures went before the fix, and where they go now:
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph before["Before: 13 days to 2026-09-05"]
-        direction TB
-        hc1["scheduled health check,<br/>every ten minutes"]
+        direction LR
+        hc1["scheduled<br/>health check,<br/>every ten minutes"]
         log1[("failure log<br/>29,754 unread lines")]
         nob["nobody"]
-        rej["rejected fix: muted within<br/>a minute, as blind as before"]
+        rej["rejected fix: muted<br/>within a minute,<br/>as blind as before"]
         hc1 -->|"detection worked:<br/>each failure written"| log1
-        log1 -.->|"delivery did not exist"| nob
-        log1 -.->|"forward the log as it is:<br/>one message per line"| rej
+        log1 -.->|"delivery did<br/>not exist"| nob
+        log1 -.->|"forward the log<br/>as it is: one<br/>message per line"| rej
     end
     subgraph after["After: built 2026-09-05 to 2026-10-03"]
-        direction TB
+        direction LR
         hc2["the checks"]
-        al["alerter: remembered state,<br/>heartbeat on every run,<br/>every read bounded"]
+        al["alerter:<br/>remembered state,<br/>heartbeat on every run,<br/>every read bounded"]
         wat["second, independent<br/>watcher"]
         per["a person"]
         hc2 -->|"a fault starts<br/>or clears"| al
-        al ==>|"one message when it starts,<br/>one when it clears"| per
-        wat ==>|"raises the alarm if the<br/>regular check-in stops"| per
+        al ==>|"one message<br/>when it starts,<br/>one when it clears"| per
+        wat ==>|"raises the alarm<br/>if the regular<br/>check-in stops"| per
     end
     before ==>|"delivery built,<br/>detection kept"| after
     classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220

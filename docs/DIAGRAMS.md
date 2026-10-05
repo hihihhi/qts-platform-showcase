@@ -66,16 +66,16 @@ sequenceDiagram
     participant D as Versioned dataset
     participant W as 4 writers
     participant P as A fifth process
-    R->>D: pin the version each started with
+    R->>D: pin the version<br/>each started with
     par writers append
-        W->>D: publish a whole new version, or nothing
+        W->>D: publish a whole new<br/>version, or nothing
     and a partition is rewritten
         P->>D: rewrite one partition
     and readers keep reading
-        R->>D: read through DuckDB, Apache Arrow<br/>and the query interface
-        D-->>R: the pinned version, even while<br/>a writer publishes the next one
+        R->>D: read through DuckDB,<br/>Apache Arrow and<br/>the query interface
+        D-->>R: the pinned version,<br/>even while a writer<br/>publishes the next one
     end
-    Note over R,P: Gate result: 23/23 commits, 0 lost, no writer errors.<br/>1,111 reads, 0 mismatches against the pinned version.<br/>Final dataset: 420,000 rows exactly, every writer's batch once.
+    Note over R,P: Gate result: 23/23 commits, 0 lost,<br/>no writer errors. 1,111 reads, 0 mismatches<br/>against the pinned version. Final dataset:<br/>420,000 rows exactly, every writer's batch once.
 ```
 
 Where in the code: closed source, not in this repository; the gate is described in [reliability.md](reliability.md#concurrency-tested-rather-than-argued).
@@ -85,7 +85,7 @@ Where in the code: closed source, not in this repository; the gate is described 
 What each layer holds, what is allowed to change it, and the one kind of row cleansing removes.
 
 ```mermaid
-flowchart LR
+flowchart TB
     src["Market data<br/>as delivered"]
     subgraph layers["Three layers"]
         raw[("raw<br/>byte for byte,<br/>never changed")]
@@ -98,7 +98,7 @@ flowchart LR
     raw -->|"the converter,<br/>once per raw file"| tab
     tab ==>|"one reviewed cleansing<br/>program per table"| cln
     tab -->|"removed: 0.09%<br/>of A-share rows"| dup
-    cln -.->|"compared with typed:<br/>shows what each rule changed"| tab
+    cln -.->|"compared with typed:<br/>shows what each<br/>rule changed"| tab
     cln -->|"each rule's hits<br/>counted per day"| ctl
     classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220
     classDef step fill:#f1f5f9,stroke:#475569,color:#0b1220
@@ -149,26 +149,26 @@ Where in the code: closed source, not in this repository; described in [data-mod
 Before the fix, every failure was detected and written to a log nobody read; after it, a fault reaches a person once when it starts and once when it clears.
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph before["Before: 13 days to 2026-09-05"]
-        direction TB
-        hc1["scheduled health check,<br/>every ten minutes"]
+        direction LR
+        hc1["scheduled<br/>health check,<br/>every ten minutes"]
         log1[("failure log<br/>29,754 unread lines")]
         nob["nobody"]
-        rej["rejected fix: muted within<br/>a minute, as blind as before"]
+        rej["rejected fix: muted<br/>within a minute,<br/>as blind as before"]
         hc1 -->|"detection worked:<br/>each failure written"| log1
-        log1 -.->|"delivery did not exist"| nob
-        log1 -.->|"forward the log as it is:<br/>one message per line"| rej
+        log1 -.->|"delivery did<br/>not exist"| nob
+        log1 -.->|"forward the log<br/>as it is: one<br/>message per line"| rej
     end
     subgraph after["After: built 2026-09-05 to 2026-10-03"]
-        direction TB
+        direction LR
         hc2["the checks"]
-        al["alerter: remembered state,<br/>heartbeat on every run,<br/>every read bounded"]
+        al["alerter:<br/>remembered state,<br/>heartbeat on every run,<br/>every read bounded"]
         wat["second, independent<br/>watcher"]
         per["a person"]
         hc2 -->|"a fault starts<br/>or clears"| al
-        al ==>|"one message when it starts,<br/>one when it clears"| per
-        wat ==>|"raises the alarm if the<br/>regular check-in stops"| per
+        al ==>|"one message<br/>when it starts,<br/>one when it clears"| per
+        wat ==>|"raises the alarm<br/>if the regular<br/>check-in stops"| per
     end
     before ==>|"delivery built,<br/>detection kept"| after
     classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220

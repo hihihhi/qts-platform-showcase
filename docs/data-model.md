@@ -7,7 +7,7 @@ Numbers are sourced in [results.md](results.md).
 What each layer holds and what is allowed to change it:
 
 ```mermaid
-flowchart LR
+flowchart TB
     src["Market data<br/>as delivered"]
     subgraph layers["Three layers"]
         raw[("raw<br/>byte for byte,<br/>never changed")]
@@ -20,7 +20,7 @@ flowchart LR
     raw -->|"the converter,<br/>once per raw file"| tab
     tab ==>|"one reviewed cleansing<br/>program per table"| cln
     tab -->|"removed: 0.09%<br/>of A-share rows"| dup
-    cln -.->|"compared with typed:<br/>shows what each rule changed"| tab
+    cln -.->|"compared with typed:<br/>shows what each<br/>rule changed"| tab
     cln -->|"each rule's hits<br/>counted per day"| ctl
     classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220
     classDef step fill:#f1f5f9,stroke:#475569,color:#0b1220
