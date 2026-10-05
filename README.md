@@ -1,13 +1,13 @@
-# QTS research data platform: a showcase
+# CUHK QTS research data platform: 700B+ rows of tick data
 
 [![ci](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/ci.yml) [![lint](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/lint.yml/badge.svg)](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/lint.yml)
 
 A university quant society's research team needed tick-level market data it could trust and query
 in seconds. As the team's sole developer, Oscar Choi built the platform that serves it: an
-ingestion and cleansing pipeline plus a versioned reader library over **700B+ stored market-data
-rows** (A-share cleansed plus crypto stored, table counts of 2026-10-05). Cleansing flags rows
-instead of dropping them, after a time filter was found silently discarding **113,180**
-closing-auction trades in one day; the only rows it removes are exact duplicates, **0.09%**.
+ingestion and cleansing pipeline plus a versioned reader library over **700B+ rows** (A-share and
+crypto, stored, as of 2026-10-05). Cleansing flags rows instead of dropping them, after a time
+filter was found silently discarding **113,180** closing-auction trades in one day; the only rows
+it removes are exact duplicates, **0.09%**.
 
 ```mermaid
 flowchart LR
