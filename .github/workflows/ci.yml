@@ -9,5 +9,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Document checks and their self-test, the stand-in's tests, and the demo
+      - name: Document checks and their self-test, and the demo
         run: bash scripts/check.sh

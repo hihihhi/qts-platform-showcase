@@ -16,13 +16,14 @@ flowchart LR
 ```
 
 ```bash
-bash scripts/demo.sh    # re-derives every computed figure in docs/results.md, then runs the stand-in
+bash scripts/demo.sh    # re-derives every computed figure in docs/results.md from its raw counts
 ```
 
 A write-up, not a code release: the platform's source is closed, so this repository holds none of
 its code, no infrastructure detail and no data, and every number cites a dated source document by
-title ([sources](docs/results.md#sources)). [demo/](demo/) is a separate stand-in, independent and
-written only from this write-up, that runs the same ideas on SYNTHETIC data ([below](#run-the-stand-in)).
+title ([sources](docs/results.md#sources)). A separate stand-in, independent and written only from
+this write-up, runs the same ideas on SYNTHETIC data in its own repository,
+[qts-platform-demo](https://github.com/hihihhi/qts-platform-demo).
 Implemented with AI coding agents under Oscar's design and review.
 
 ## The problem
@@ -84,57 +85,19 @@ refusal, and it is published on purpose. Every figure, with its caveats:
 
 ## How to run
 
-There is no platform code here to run. `bash scripts/demo.sh` re-derives the computed figures and
-runs the stand-in below; `bash scripts/check.sh` adds the document checks and the stand-in's tests.
+There is no platform code here to run. `bash scripts/demo.sh` re-derives the computed figures;
+`bash scripts/check.sh` adds the document checks and their self-test.
 To read in under five minutes: [results.md](docs/results.md) (every figure, its label, source and
 caveats), [data-model.md](docs/data-model.md) (the layers, versioning, the interface and the data
 decisions) and [reliability.md](docs/reliability.md) (gates, alerting and one incident).
 
-### Run the stand-in
+### The stand-in
 
-[demo/](demo/) holds **minilake**, an independent re-implementation of the ideas above, written
-only from this write-up, on SYNTHETIC data. It is not the platform's code and shares none of it.
-It uses the standard library only, so it runs anywhere in seconds: JSON column files stand in for a
-columnar format, and the platform's own stack is deliberately not used.
-
-```bash
-cd demo && python3 -m minilake                    # every layer, then the gates; exit 0 only if all pass
-cd demo && python3 -m unittest discover -s tests  # one test class per layer, plus the gates
-```
-
-It generates a small tick delivery with planted problems (exact duplicates, an evening print, a
-price far off the previous trade, a crossed quote, trades stamped in UTC instead of exchange time,
-and a missing day), then:
-
-- **raw** keeps the files byte for byte and read-only under a checksum manifest; verification
-  reports any altered byte;
-- **typed** stores column-oriented day partitions under a schema; every publish is a new version
-  folder with its manifest, made visible by one atomic rename (optimistic concurrency in the style
-  of Delta Lake and Apache Iceberg), and readers pin a version. A replace that a concurrent commit
-  has overtaken raises a conflict instead of discarding that commit;
-- **cleansed** labels, flags or corrects and drops only exact duplicates. Each rule's hits are
-  counted per day, every corrected cell goes into a correction log with the vendor's value, and a
-  diff check proves cleansing changed only what the rules name;
-- **query** is `fetch(universe, from_, to, freq=..., snapshot=..., gaps=...)`, with partition
-  pruning and explicit errors. The read path hands over whole days, and an as-of guard withholds
-  every row from `to` on; `gaps="carry_back"` looks only backwards, and `gaps="closest"` needs
-  `permit_future=True`;
-- **gates** check seven invariants. Each runs a control in the same run: a planted defect it must
-  catch (an altered byte in a raw file and in a table file, unnamed changes, a non-atomic publish,
-  a stale replace) or the synthetic ground truth it must match (planted counts, auction labels).
-  Reader, writer and rewriter processes run under a deadline, so a crash or a hang fails the gate.
-  The end of one run, abridged (counts of reads and rewrites vary between runs):
-
-```text
-  PASS  checksums        8 raw files verified, 0 problems; controls: altered raw byte caught: True; ...
-  PASS  layer diff       8 table-days diffed, 0 unexplained changes; controls caught: unnamed value ...
-  PASS  rule counts      found/planted: exact_duplicate 3/3, out_of_hours 1/1, off_band_price 1/1, ...
-  PASS  auction labels   12 labelled closing_auction; ground truth 12 kept of 12 delivered; ...
-  PASS  as-of guard      271 rows returned, last 2024-03-05T09:59:25.651 < 2024-03-05T10:00; ...
-  PASS  pinned snapshot  v2 published over the pinned v1; fetch(snapshot=1) unchanged: True ...
-  PASS  concurrency      4 readers, 2 writers, 1 rewriter: commits 40/40 acknowledged, lost 0; ...
-  gates: 7/7 pass
-```
+To run the ideas rather than read about them, see
+[qts-platform-demo](https://github.com/hihihhi/qts-platform-demo): **minilake**, an independent
+re-implementation written only from this write-up. It is not the platform's code and shares none
+of it; it uses the standard library only, runs on SYNTHETIC data in seconds, and checks its layers
+with seven gates, each with a control.
 
 ## Architecture
 
@@ -171,8 +134,8 @@ and review; 815 of the 845 commits in the main repository carry an AI co-author 
 
 - **The platform's numbers are not reproducible from here.** Its source and data are closed; the
   numbers rest on dated private records, described in [results.md](docs/results.md#sources).
-- **The stand-in is not the platform.** [demo/](demo/) runs on SYNTHETIC data at toy scale; it
-  shows the ideas and none of the platform's numbers.
+- **The stand-in is not the platform.** [qts-platform-demo](https://github.com/hihihhi/qts-platform-demo)
+  runs on SYNTHETIC data at toy scale; it shows the ideas and none of the platform's numbers.
 - **No uptime or SLA figure.** No availability measurement exists that would support one.
 - **The crypto count is a snapshot, not final**, and its exact-duplicate count was not recorded,
   so the number of distinct rows behind 700B+ is unmeasured; a re-cleanse is in progress.
@@ -204,4 +167,4 @@ and review; 815 of the 845 commits in the main repository carry an AI co-author 
 
 ## Licence
 
-Text and diagrams: CC BY 4.0. Code in scripts/ and demo/: MIT. Both in [LICENSE](LICENSE).
+Text and diagrams: CC BY 4.0. Code in scripts/: MIT. Both in [LICENSE](LICENSE).

@@ -65,13 +65,13 @@ GENERIC = [
 ]
 # Vendor and brand names are caught by shape, so that the names themselves never ship in this
 # file: any domain name, and any all-capitals word that is not on the short list of terms this
-# write-up uses.
+# write-up uses. github.com is allowed for the link to the stand-in's repository.
 DOMAIN = r"\b[a-z0-9-]+\.(?:com|net|org|io|cn|hk|ai|dev|xyz|co)\b"
-DOMAIN_OK = {"creativecommons.org"}
+DOMAIN_OK = {"creativecommons.org", "github.com"}
 ACRONYM = re.compile(r"(?<![\w-])[A-Z][A-Z0-9]{2,}(?![\w-])")
 ACRONYM_OK = {
     "API", "CUHK", "QTS", "SQL", "SLA", "README", "LICENSE", "PASS", "FAIL", "ILLUSTRATIVE",
-    "SYNTHETIC", "MIT", "OUTPUT", "CHECK", "PINNED", "NOT", "FORBIDDEN", "TERMS", "FILE", "JSON", "UTC",
+    "SYNTHETIC", "MIT", "OUTPUT", "CHECK", "PINNED", "NOT", "FORBIDDEN", "TERMS", "FILE", "UTC",
 }
 # --- end of pattern lists ---
 BLOCK_START, BLOCK_END = "# --- pattern lists:", "# --- end of pattern lists ---"
@@ -209,8 +209,10 @@ def check_forbidden(tree, private=PRIVATE):
                 if rel == "LICENSE" and line.strip() in mit_lines:
                     continue
                 for label, rx in patterns:
-                    m = rx.search(line)
-                    if m and not (label == DOMAIN and m.group(0).lower() in DOMAIN_OK):
+                    # every match, so an allowed domain earlier on a line cannot hide a later one
+                    for m in rx.finditer(line):
+                        if label == DOMAIN and m.group(0).lower() in DOMAIN_OK:
+                            continue
                         shown = m.group(0) if label != "<private pattern>" else "<redacted>"
                         errors.append(f"{rel}:{n}: forbidden term {shown!r} ({label})")
                 # Code uses capitals for constants, so the shape rule reads prose and config only.
@@ -274,6 +276,8 @@ def self_test():
         ("size unit", "forbidden terms", append("docs/results.md", "\nThe layer takes 999 " + "PB.\n")),
         ("vendor-shaped name", "forbidden terms", append("docs/results.md", "\nData came from ACMEDATA.\n")),
         ("domain name", "forbidden terms", append("docs/results.md", "\nSee acme-data" + ".com for files.\n")),
+        ("allowed domain hiding another", "forbidden terms",
+         append("docs/results.md", "\nSee github" + ".com and acme-data" + ".com.\n")),
         ("private-list hardware word", "forbidden terms", append("docs/data-model.md", "\nIt ran on a zzhw" + "term card.\n")),
         ("private-list access word", "forbidden terms", append("README.md", "\nResearchers connect through zzaccess" + "term.\n")),
     ]
