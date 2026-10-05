@@ -10,12 +10,47 @@ filter was found silently discarding **113,180** closing-auction trades in one d
 it removes are exact duplicates, **0.09%**.
 
 ```mermaid
-flowchart LR
-    src["Market data<br/>as delivered"] --> raw["raw<br/>byte-identical"]
-    raw --> tab["typed Apache Parquet<br/>versioned"]
-    tab --> cln["cleansed<br/>flagged, not dropped"]
-    cln --> iface["one query interface<br/>Arrow out; DuckDB, Polars"]
+flowchart TB
+    src["Market data<br/>as delivered"]
+    subgraph pipe["Ingestion and cleansing pipeline"]
+        direction LR
+        raw[("raw<br/>byte-identical")]
+        tab[("typed Apache Parquet<br/>the same rows, typed")]
+        cln[("cleansed<br/>labels and flags")]
+    end
+    subgraph ds["Versioned dataset"]
+        ver[("every table a<br/>sequence of versions")]
+    end
+    subgraph rd["Readers"]
+        direction LR
+        api["one query interface"]
+        arrow["Apache Arrow data"]
+        duck["DuckDB SQL"]
+        pol["Polars"]
+    end
+    src -->|"kept byte for byte"| raw
+    raw -->|"convert: nothing corrected,<br/>nothing dropped"| tab
+    tab ==>|"label, flag, correct;<br/>only exact duplicates dropped"| cln
+    cln ==>|"a whole new version<br/>or nothing"| ver
+    ver ==>|"reader pins a version"| api
+    api -->|"results arrive as"| arrow
+    ver -->|"same pinned versions"| duck
+    ver -->|"same pinned versions"| pol
+    classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220
+    classDef step fill:#f1f5f9,stroke:#475569,color:#0b1220
+    classDef gate fill:#fef3c7,stroke:#b45309,color:#0b1220
+    classDef out  fill:#dcfce7,stroke:#15803d,color:#0b1220
+    classDef ext  fill:#f8fafc,stroke:#94a3b8,color:#0b1220,stroke-dasharray:4 3
+    classDef key  fill:#ede9fe,stroke:#6d28d9,color:#0b1220,stroke-width:2px
+    class src ext
+    class raw,tab data
+    class cln,ver key
+    class api step
+    class arrow,duck,pol out
 ```
+
+Where in the code: closed source, not in this repository; each step is described in
+[data-model.md](docs/data-model.md), and every diagram is indexed in [DIAGRAMS.md](docs/DIAGRAMS.md).
 
 ```bash
 bash scripts/demo.sh    # re-derives every computed figure in docs/results.md from its raw counts
@@ -49,6 +84,29 @@ next month on exactly the same rows.
   or Polars can read the same pinned versions directly.
 - **Gates.** A property holds when a script that checks it exits 0, and every gate must be able to
   fail.
+
+How a publish and the readers meet, as the concurrency gate ran it ([results](docs/results.md#concurrency)):
+
+```mermaid
+sequenceDiagram
+    participant R as 12 readers
+    participant D as Versioned dataset
+    participant W as 4 writers
+    participant P as A fifth process
+    R->>D: pin the version each started with
+    par writers append
+        W->>D: publish a whole new version, or nothing
+    and a partition is rewritten
+        P->>D: rewrite one partition
+    and readers keep reading
+        R->>D: read through DuckDB, Apache Arrow<br/>and the query interface
+        D-->>R: the pinned version, even while<br/>a writer publishes the next one
+    end
+    Note over R,P: Gate result: 23/23 commits, 0 lost, no writer errors.<br/>1,111 reads, 0 mismatches against the pinned version.<br/>Final dataset: 420,000 rows exactly, every writer's batch once.
+```
+
+Where in the code: closed source, not in this repository; the gate is described in
+[reliability.md](docs/reliability.md#concurrency-tested-rather-than-argued).
 
 The call shapes, with invented names (the real interface is closed source):
 

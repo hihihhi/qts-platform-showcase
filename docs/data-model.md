@@ -4,14 +4,37 @@ What a researcher on the platform gets, described at the level of ideas. No code
 or implementation detail is published; the function, argument and dataset names below are invented.
 Numbers are sourced in [results.md](results.md).
 
+What each layer holds and what is allowed to change it:
+
 ```mermaid
 flowchart LR
-    src["Market data<br/>as delivered"] --> raw["raw<br/>byte-identical<br/>never changed"]
-    raw -->|"convert"| tab["typed Apache Parquet<br/>the same rows, typed<br/>versioned"]
-    tab -->|"cleansing rules,<br/>each counted per day"| cln["cleansed<br/>labels and flags<br/>only exact duplicates removed"]
-    cln --> iface["one query interface<br/>pinned versions, explicit errors<br/>Apache Arrow out"]
-    iface --> nb["research notebook"]
+    src["Market data<br/>as delivered"]
+    subgraph layers["Three layers"]
+        raw[("raw<br/>byte for byte,<br/>never changed")]
+        tab[("typed Parquet<br/>the same rows, typed")]
+        cln[("cleansed<br/>labels, flags,<br/>corrected values")]
+    end
+    dup["exact duplicates:<br/>the only rows removed"]
+    ctl{{"checked against<br/>control days"}}
+    src -->|"kept as it arrived"| raw
+    raw -->|"the converter,<br/>once per raw file"| tab
+    tab ==>|"one reviewed cleansing<br/>program per table"| cln
+    tab -->|"removed: 0.09%<br/>of A-share rows"| dup
+    cln -.->|"compared with typed:<br/>shows what each rule changed"| tab
+    cln -->|"each rule's hits<br/>counted per day"| ctl
+    classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220
+    classDef step fill:#f1f5f9,stroke:#475569,color:#0b1220
+    classDef gate fill:#fef3c7,stroke:#b45309,color:#0b1220
+    classDef out  fill:#dcfce7,stroke:#15803d,color:#0b1220
+    classDef ext  fill:#f8fafc,stroke:#94a3b8,color:#0b1220,stroke-dasharray:4 3
+    classDef key  fill:#ede9fe,stroke:#6d28d9,color:#0b1220,stroke-width:2px
+    class src ext
+    class raw,tab data
+    class cln key
+    class dup,ctl gate
 ```
+
+Where in the code: closed source, not in this repository; the layers are described below.
 
 ## Three layers
 
@@ -80,6 +103,34 @@ peeks     = fetch("equities.bars", from_="2024-03-01", to="2024-03-29", freq="1m
 fetch("equities.trades", universe=["NO_SUCH_SYM"], from_="2024-03-01", to="2024-03-01")
 #   -> NoSuchInstrument: NO_SUCH_SYM is not listed on 2024-03-01
 ```
+
+How a gap fill that would read the future is handled:
+
+```mermaid
+flowchart LR
+    req["a request with<br/>gaps to fill"]
+    dir{{"does the gap handling<br/>look forwards?"}}
+    opt{{"explicit opt-in<br/>given?"}}
+    ref["refused"]
+    rows["rows returned;<br/>every filled row<br/>says it was filled"]
+    req -->|"gap handling named<br/>in the call"| dir
+    dir ==>|"no: looks only<br/>backwards, allowed"| rows
+    dir -->|"yes: it would<br/>read the future"| opt
+    opt -->|"no"| ref
+    opt -->|"yes"| rows
+    classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220
+    classDef step fill:#f1f5f9,stroke:#475569,color:#0b1220
+    classDef gate fill:#fef3c7,stroke:#b45309,color:#0b1220
+    classDef out  fill:#dcfce7,stroke:#15803d,color:#0b1220
+    classDef ext  fill:#f8fafc,stroke:#94a3b8,color:#0b1220,stroke-dasharray:4 3
+    classDef key  fill:#ede9fe,stroke:#6d28d9,color:#0b1220,stroke-width:2px
+    class req step
+    class dir,opt gate
+    class ref gate
+    class rows out
+```
+
+Where in the code: closed source, not in this repository; the calls above are illustrative.
 
 What a cleansed result looks like. **ILLUSTRATIVE OUTPUT, SYNTHETIC values invented for this page;
 not market data:**

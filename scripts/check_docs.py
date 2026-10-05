@@ -70,7 +70,7 @@ DOMAIN_OK = {"creativecommons.org", "github.com"}
 ACRONYM = re.compile(r"(?<![\w-])[A-Z][A-Z0-9]{2,}(?![\w-])")
 ACRONYM_OK = {
     "API", "CUHK", "QTS", "SQL", "SLA", "README", "LICENSE", "PASS", "FAIL", "ILLUSTRATIVE",
-    "SYNTHETIC", "MIT", "OUTPUT", "CHECK", "PINNED", "NOT", "FORBIDDEN", "TERMS", "FILE", "UTC",
+    "SYNTHETIC", "MIT", "OUTPUT", "CHECK", "PINNED", "NOT", "FORBIDDEN", "TERMS", "FILE", "UTC", "DIAGRAMS",
 }
 # --- end of pattern lists ---
 BLOCK_START, BLOCK_END = "# --- pattern lists:", "# --- end of pattern lists ---"

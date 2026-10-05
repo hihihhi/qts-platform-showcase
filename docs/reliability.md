@@ -51,6 +51,49 @@ platform's handover document (2026-09-07).
 | 2026-09-30 | Alerts stop depending on the health of the machine they report on, and a second, independent watcher raises the alarm if the regular check-in stops. |
 | 2026-10-03 | An alert audit turns each recent silent failure into a probe and proves delivery end to end. |
 
+Where the failures went before the fix, and where they go now:
+
+```mermaid
+flowchart LR
+    subgraph before["Before: 13 days to 2026-09-05"]
+        direction TB
+        hc1["scheduled health check,<br/>every ten minutes"]
+        log1[("failure log<br/>29,754 unread lines")]
+        nob["nobody"]
+        rej["rejected fix: muted within<br/>a minute, as blind as before"]
+        hc1 -->|"detection worked:<br/>each failure written"| log1
+        log1 -.->|"delivery did not exist"| nob
+        log1 -.->|"forward the log as it is:<br/>one message per line"| rej
+    end
+    subgraph after["After: built 2026-09-05 to 2026-10-03"]
+        direction TB
+        hc2["the checks"]
+        al["alerter: remembered state,<br/>heartbeat on every run,<br/>every read bounded"]
+        wat["second, independent<br/>watcher"]
+        per["a person"]
+        hc2 -->|"a fault starts<br/>or clears"| al
+        al ==>|"one message when it starts,<br/>one when it clears"| per
+        wat ==>|"raises the alarm if the<br/>regular check-in stops"| per
+    end
+    before ==>|"delivery built,<br/>detection kept"| after
+    classDef data fill:#dbeafe,stroke:#1d4ed8,color:#0b1220
+    classDef step fill:#f1f5f9,stroke:#475569,color:#0b1220
+    classDef gate fill:#fef3c7,stroke:#b45309,color:#0b1220
+    classDef out  fill:#dcfce7,stroke:#15803d,color:#0b1220
+    classDef ext  fill:#f8fafc,stroke:#94a3b8,color:#0b1220,stroke-dasharray:4 3
+    classDef key  fill:#ede9fe,stroke:#6d28d9,color:#0b1220,stroke-width:2px
+    class hc1,hc2 step
+    class log1 data
+    class nob ext
+    class rej gate
+    class al key
+    class wat step
+    class per out
+```
+
+Where in the code: closed source, not in this repository; the sources are the alerter's design
+notes and the handover document named above.
+
 **The gates it left.** One gate fails unless the alerter has run within its interval and can still
 report a failure. Another fails if the latest check-in is more than ten minutes old. Clearing an
 alert requires measuring its condition again; a cleared alert is archived, not erased.
