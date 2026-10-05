@@ -23,7 +23,6 @@ Standard library only.
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 

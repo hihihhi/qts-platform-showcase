@@ -1,5 +1,7 @@
 # QTS research data platform: a showcase
 
+[![ci](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/ci.yml) [![lint](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/lint.yml/badge.svg)](https://github.com/hihihhi/qts-platform-showcase/actions/workflows/lint.yml)
+
 A university quant society's research team needed tick-level market data it could trust and query
 in seconds. As the team's sole developer, Oscar Choi built the platform that serves it: an
 ingestion and cleansing pipeline plus a versioned reader library over **700B+ stored market-data
