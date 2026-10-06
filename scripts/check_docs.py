@@ -279,6 +279,10 @@ def self_test():
          append("docs/results.md", "\nSee github" + ".com and acme-data" + ".com.\n")),
         ("private-list hardware word", "forbidden terms", append("docs/data-model.md", "\nIt ran on a zzhw" + "term card.\n")),
         ("private-list access word", "forbidden terms", append("README.md", "\nResearchers connect through zzaccess" + "term.\n")),
+        # Review 2026-10-06. A headline moved in both documents still has to match its own arithmetic:
+        # 0.09% is stated elsewhere on the page, which must not be enough.
+        ("headline figure moved in both documents", "arithmetic",
+         lambda tree: [edit(f, "| 0.09% | Live |", "| 0.10% | Live |")(tree) for f in ("README.md", "docs/results.md")]),
     ]
     base = tempfile.mkdtemp(prefix="showcase-selftest-")
     repo = os.path.dirname(HERE)

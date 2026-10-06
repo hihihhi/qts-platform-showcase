@@ -43,8 +43,26 @@ def headlines(path=RESULTS, heading="Headline numbers"):
     return table_under(open(path, encoding="utf-8").read(), heading)
 
 
+def cell(text, heading, row, col):
+    """Cell `col` of the row under `## heading` whose first cell starts with `row`; "" when absent."""
+    return next((r[col] for r in table_under(text, heading) if r[0].startswith(row) and len(r) > col), "")
+
+
+def paragraph(text, start):
+    """The paragraph that begins with `start`; "" when absent."""
+    return next((p for p in text.split("\n\n") if p.startswith(start)), "")
+
+
+def says(where, value):
+    """`value` appears in `where` as a whole figure, not inside a longer number such as 10.09%."""
+    return re.search(r"(?<![\d,.])" + re.escape(value) + r"(?!\d|[,.]\d)", where) is not None
+
+
 def derive(path=RESULTS):
-    """(statement, value as results.md must state it, stated?) for every computed figure."""
+    """(statement, value as results.md must state it, stated?) for every computed figure.
+
+    Each figure must be stated at its own place: a figure that only appears somewhere else on the
+    page, such as a rate mentioned in another row, does not count (review 2026-10-06)."""
     text = open(path, encoding="utf-8").read()
     raw = {r[0]: int(r[1].replace(",", "")) for r in table_under(text, "Raw counts")}
     need = ["A-share cleansed orders", "A-share cleansed trades", "A-share cleansed quotes",
@@ -57,22 +75,31 @@ def derive(path=RESULTS):
     crypto, typed = sum(raw[k] for k in need[4:]), raw["A-share typed layer, all three tables"]
     total, removed = cleansed + crypto, typed - cleansed
     reads = sum(v for k, v in raw.items() if k.startswith("Concurrency gate, reads"))
+    headline = lambda col: cell(text, "Headline numbers", "Stored market-data rows", col)
+    removal = lambda col: cell(text, "Headline numbers", "A-share rows cleansing removed", col)
+    scale = lambda row: cell(text, "Scale", row, 1)
+    why = paragraph(text, "**Why 700B+")
     figures = [
-        ("A-share cleansed rows = orders + trades + quotes", f"{cleansed:,}"),
-        ("the same, in billions", f"{cleansed / 1e9:.1f}B"),
-        ("crypto stored rows, in billions", f"{crypto / 1e9:.1f}B"),
-        ("crypto stored rows = trades + L3 events + L2 book updates", f"{crypto:,}"),
-        ("A-share cleansed + crypto stored", f"{total:,}"),
-        ("headline (holds while the stored sum is at least 700B)", "700B+" if total >= 700e9 else "below 700B"),
+        ("A-share cleansed rows = orders + trades + quotes", f"{cleansed:,}", [scale("A-share rows, cleansed")]),
+        ("the same, in billions", f"{cleansed / 1e9:.1f}B", [headline(0)]),
+        ("crypto stored rows, in billions", f"{crypto / 1e9:.1f}B", [headline(0)]),
+        ("crypto stored rows = trades + L3 events + L2 book updates", f"{crypto:,}",
+         [scale("Crypto rows, stored")]),
+        ("A-share cleansed + crypto stored", f"{total:,}", [scale("Sum of the two")]),
+        ("headline (holds while the stored sum is at least 700B)", "700B+" if total >= 700e9 else "below 700B",
+         [headline(1), scale("Sum of the two")]),
         ("crypto duplicate share above which 700B distinct fails",
-         f"{(total - 700e9) / crypto * 100:.1f}%"),
+         f"{(total - 700e9) / crypto * 100:.1f}%", [why]),
         ("crypto duplicate share above which the 650B floor fails",
-         f"{(total - 650e9) / crypto * 100:.1f}%"),
-        ("rows cleansing removed = typed layer - cleansed layer", f"{removed:,}"),
-        ("removal rate", f"{removed / typed * 100:.2f}%"),
-        ("concurrency gate reads, all three reader kinds", f"{reads:,}"),
+         f"{(total - 650e9) / crypto * 100:.1f}%", [why]),
+        ("rows cleansing removed = typed layer - cleansed layer", f"{removed:,}",
+         [scale("A-share rows removed by cleansing")]),
+        ("removal rate", f"{removed / typed * 100:.2f}%",
+         [removal(1), scale("A-share rows removed by cleansing")]),
+        ("concurrency gate reads, all three reader kinds", f"{reads:,}",
+         [cell(text, "Concurrency", "Reads", 1)]),
     ]
-    return [(what, value, value in text) for what, value in figures]
+    return [(what, value, all(says(w, value) for w in where)) for what, value, where in figures]
 
 
 def main():
