@@ -73,7 +73,9 @@ ACRONYM_OK = {
     "SYNTHETIC", "MIT", "OUTPUT", "CHECK", "PINNED", "NOT", "FORBIDDEN", "TERMS", "FILE", "UTC", "DIAGRAMS",
 }
 # --- end of pattern lists ---
-BLOCK_START, BLOCK_END = "# --- pattern lists:", "# --- end of pattern lists ---"
+# Whole lines, compared exactly: a marker with text after it is not a marker, so nothing can hide on one.
+BLOCK_START = "# --- pattern lists: the only lines of this file the forbidden-terms scan skips ---"
+BLOCK_END = "# --- end of pattern lists ---"
 # Extra patterns from a file outside the repository; unset in CI, where the line printed says so.
 PRIVATE = os.environ.get("FORBIDDEN_TERMS_FILE", "")
 
@@ -178,19 +180,27 @@ def check_arithmetic(tree):
     return [f"docs/results.md: {what}: {value!r} is not stated" for what, value, ok in derive(results) if not ok]
 
 
+def private_patterns(path):
+    """The patterns in a private terms file: one per line, blank lines and # comments skipped."""
+    lines = (l.strip() for l in open(path, encoding="utf-8"))
+    return [l for l in lines if l and not l.startswith("#")]
+
+
 def check_forbidden(tree, private=PRIVATE):
     patterns = [(p, re.compile(p, re.I)) for p in GENERIC + [DOMAIN]]
-    if private and os.path.isfile(private):
-        for line in open(private, encoding="utf-8"):
-            line = line.strip()
-            if line and not line.startswith("#"):
-                patterns.append(("<private pattern>", re.compile(line, re.I)))
+    if private:
+        # A terms file that is missing or holds no pattern would scan for nothing and read as clean.
+        found = private_patterns(private) if os.path.isfile(private) else []
+        if not found:
+            return ["FORBIDDEN_TERMS_FILE is missing or holds no patterns: the private scan would check nothing"]
+        patterns += [("<private pattern>", re.compile(p, re.I)) for p in found]
     # The standard MIT text uses words the scan forbids elsewhere. Only lines that are exactly
     # the canonical MIT text are exempt, and only in LICENSE, so the file cannot hide anything else.
     mit_lines = {l.strip() for l in MIT_TEXT.splitlines() if l.strip()}
     errors = []
+    marks = [BLOCK_START, BLOCK_END]
     for d, dirs, files in os.walk(tree):
-        dirs[:] = [x for x in dirs if x not in (".git", "__pycache__")]  # never committed (.gitignore)
+        dirs[:] = [x for x in dirs if x not in (".git", "__pycache__", ".ruff_cache")]  # never committed (.gitignore)
         for f in files:
             rel = os.path.relpath(os.path.join(d, f), tree)
             try:
@@ -198,10 +208,20 @@ def check_forbidden(tree, private=PRIVATE):
             except UnicodeDecodeError:
                 errors.append(f"{rel}: not UTF-8 text; a binary file cannot be scanned, so it may not ship")
                 continue
-            in_block = False
-            for n, line in enumerate(text.splitlines(), 1):
-                if rel == SELF and line.startswith((BLOCK_START, BLOCK_END)):
-                    in_block = line.startswith(BLOCK_START)
+            in_block, lines = False, text.splitlines()
+            if rel == SELF:
+                # Without exactly one start line and one end line, in that order, a deleted end marker
+                # would switch the scan off for the rest of the file: refuse, and skip nothing.
+                at = [[i for i, l in enumerate(lines) if l.rstrip() == m] for m in marks]
+                if not (len(at[0]) == len(at[1]) == 1 and at[0][0] < at[1][0]):
+                    errors.append(f"{rel}: the pattern-list start and end markers must each appear once as a "
+                                  "whole line, start first; nothing in this file is skipped until they do")
+                    marks_ok = False
+                else:
+                    marks_ok = True
+            for n, line in enumerate(lines, 1):
+                if rel == SELF and marks_ok and line.rstrip() in marks:
+                    in_block = line.rstrip() == BLOCK_START
                     continue
                 if in_block:
                     continue  # the pattern lists themselves, and nothing else in this file
@@ -228,7 +248,7 @@ CHECKS = [("links and fences", check_links_and_fences), ("headlines", check_head
 
 def run(tree):
     if PRIVATE and os.path.isfile(PRIVATE):
-        n = sum(1 for l in open(PRIVATE, encoding="utf-8") if l.strip() and not l.startswith("#"))
+        n = len(private_patterns(PRIVATE))
         print(f"INFO  forbidden terms: generic list and shape rules, plus {n} patterns from FORBIDDEN_TERMS_FILE")
     elif PRIVATE:
         print("FAIL  FORBIDDEN_TERMS_FILE is set but is not a file")  # a typo must not read as a clean scan
@@ -283,21 +303,33 @@ def self_test():
         # 0.09% is stated elsewhere on the page, which must not be enough.
         ("headline figure moved in both documents", "arithmetic",
          lambda tree: [edit(f, "| 0.09% | Live |", "| 0.10% | Live |")(tree) for f in ("README.md", "docs/results.md")]),
+        ("empty private list", "forbidden terms", None, "empty"),
+        ("missing private list", "forbidden terms", None, "missing"),
+        # the pattern-list skip must not be switchable by a deleted or decorated marker line
+        ("end marker deleted", "forbidden terms",
+         lambda tree: [edit(SELF, BLOCK_END, "")(tree), append(SELF, "\nThe job asked for 4096 thr" + "eads.\n")(tree)]),
+        ("text after a marker", "forbidden terms",
+         edit(SELF, BLOCK_END, BLOCK_END + " 4096 thr" + "eads")),
+        ("ignored cache folder", None,
+         lambda tree: (os.makedirs(os.path.join(tree, ".ruff_cache"), exist_ok=True),
+                       open(os.path.join(tree, ".ruff_cache", "x"), "wb").write(b"\xff\xfe"))),
     ]
     base = tempfile.mkdtemp(prefix="showcase-selftest-")
     repo = os.path.dirname(HERE)
     # A scratch private list proves the private-file path works whether or not the real one exists.
     private = os.path.join(base, "private-terms.txt")
     open(private, "w", encoding="utf-8").write("# scratch\n\\bzzhw" + "term\\b\n\\bzzaccess" + "term\\b\n")
+    privates = {"empty": os.path.join(base, "empty-terms.txt"), "missing": os.path.join(base, "absent.txt")}
+    open(privates["empty"], "w", encoding="utf-8").write("# only comments\n   # an indented one\n\n")
     bad = 0
     try:
-        for label, target, mutate in cases:
+        for label, target, mutate, *use in cases:
             tree = os.path.join(base, label.replace(" ", "-"))
-            shutil.copytree(repo, tree, ignore=shutil.ignore_patterns(".git", "__pycache__"))
+            shutil.copytree(repo, tree, ignore=shutil.ignore_patterns(".git", "__pycache__", ".ruff_cache"))
             if mutate:
                 mutate(tree)
             red = [name for name, fn in CHECKS
-                   if (fn(tree, private) if fn is check_forbidden else fn(tree))]
+                   if (fn(tree, privates[use[0]] if use else private) if fn is check_forbidden else fn(tree))]
             want = target if isinstance(target, list) else [target] if target else []
             ok = red == want
             bad += not ok
